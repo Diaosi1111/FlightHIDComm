@@ -9,7 +9,7 @@ std::shared_ptr<spdlog::logger> Log::s_MainLogger;
 //std::shared_ptr<spdlog::logger> Log::s_ClientLogger;
 //std::shared_ptr<spdlog::logger> Log::s_ConsoleLogger;
 
-void Log::Init() {
+void Log::Init(spdlog::level::level_enum display_level) {
 	//spdlog::set_pattern("%^[%T] %n: %v%$");
 
 	//s_CoreLogger = spdlog::stdout_color_mt("MCEngine");
@@ -33,7 +33,7 @@ void Log::Init() {
         sinks.push_back(console_sink);
         sinks.push_back(file_sink);
         s_MainLogger = std::make_shared<spdlog::logger>("FCUPanel", begin(sinks), end(sinks));
-        s_MainLogger->set_level(spdlog::level::debug);
+        s_MainLogger->set_level(display_level);
         std::cout << "MultiLogger: create multi sink OK." << std::endl;
     }
     catch (const spdlog::spdlog_ex& ex)

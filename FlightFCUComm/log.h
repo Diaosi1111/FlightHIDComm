@@ -5,7 +5,7 @@
 namespace FCUPanel {
 class Log {
 public:
-	static void Init();
+	static void Init(spdlog::level::level_enum display_level=spdlog::level::trace);
 
 	//inline static std::shared_ptr<spdlog::logger> &GetCoreLogger() {
 	//	return s_CoreLogger;

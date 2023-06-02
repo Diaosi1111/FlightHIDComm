@@ -45,6 +45,10 @@ struct A32NXFCUPanel
     INT32 vs_selected;
 };
 
+typedef struct AIRCRAFT_VAR {
+    double metric_mode_active;
+}aircraft_var_t;
+
 //typedef struct PANEL_STRUCT_HID {
 //    UINT16 data1;
 //    UINT16 hdg_selected;
@@ -84,6 +88,7 @@ extern fcu_panel_hid_t panel_state;
 
 typedef enum  {
     GROUP_FCU_PANEL,
+    GROUP_AIRCRAFT_VAR,
 }GROUP_ID;
 
 typedef enum {
@@ -122,16 +127,18 @@ typedef enum {
 typedef enum  {
     DEFINITION_1,
     DEFINITION_FCU_PANEL,
+    DEFINITION_AIRCRAFT_VAR
 }DATA_DEFINE_ID;
 
 typedef enum  {
     REQUEST_1,
     REQUEST_FCU_PANEL,
+    REQUEST_AIRCRAFT_VAR,
 }DATA_REQUEST_ID;
 
 void testDataRequest();
 
-void init_SimConnect();
+int init_SimConnect();
 
 void deinit_SimConnect();
 

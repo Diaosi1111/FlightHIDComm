@@ -1,13 +1,3 @@
-// Copyright (c) Asobo Studio, All rights reserved. www.asobostudio.com
-//------------------------------------------------------------------------------
-//
-//  SimConnect Data Request Sample
-//  
-//	Description:
-//				After a flight has loaded, request the lat/lon/alt of the user 
-//				aircraft
-//------------------------------------------------------------------------------
-
 #include "sim_client.hpp"
 #include "main.h"
 #include "log.h"
@@ -15,7 +5,9 @@
 int     quit = 0;
 HANDLE  hSimConnect = NULL;
 HRESULT hr;
+
 fcu_panel_hid_t panel_state;
+aircraft_var_t aircraft_var;
 
 void CALLBACK MyDispatchProcRD(SIMCONNECT_RECV* pData, DWORD cbData, void* pContext)
 {
@@ -89,6 +81,15 @@ void CALLBACK MyDispatchProcRD(SIMCONNECT_RECV* pData, DWORD cbData, void* pCont
                 
                 hid_data_send(&panel_state);
 
+            }
+            break;
+        }
+        case REQUEST_AIRCRAFT_VAR:
+        {
+            DWORD ObjectID = pObjData->dwObjectID;
+            aircraft_var_t* pS = (aircraft_var_t*)&pObjData->dwData;
+            {
+                aircraft_var.metric_mode_active = pS->metric_mode_active != 0;
             }
             break;
         }
@@ -188,7 +189,7 @@ void testDataRequest()
         hr = SimConnect_MapClientEventToSimEvent(hSimConnect, EVENT_A32X_FCU_APPR_PUSH, "A32NX.FCU_APPR_PUSH");
         hr = SimConnect_MapClientEventToSimEvent(hSimConnect, EVENT_A32X_FCU_SPD_MACH_PUSH, "A32NX.FCU_SPD_MACH_TOGGLE_PUSH");
         hr = SimConnect_MapClientEventToSimEvent(hSimConnect, EVENT_A32X_FCU_TRK_FPA_PUSH, "A32NX.FCU_TRK_FPA_TOGGLE_PUSH");
-        //hr = SimConnect_MapClientEventToSimEvent(hSimConnect, EVENT_A32X_FCU_METRIC_ALT_PUSH, "");
+        //hr = SimConnect_MapClientEventToSimEvent(hSimConnect, EVENT_A32X_FCU_METRIC_ALT_PUSH, ""); //该事件在switch中直接处理变量
 
         hr = SimConnect_MapClientEventToSimEvent(hSimConnect, EVENT_A32X_FCU_SPD_PUSH, "A32NX.FCU_SPD_PUSH");
         hr = SimConnect_MapClientEventToSimEvent(hSimConnect, EVENT_A32X_FCU_SPD_PULL, "A32NX.FCU_SPD_PULL");
@@ -235,21 +236,15 @@ void testDataRequest()
     }
 }
 
-void init_SimConnect() {
+int init_SimConnect() {
     HRESULT hr;
 
     if (SUCCEEDED(SimConnect_Open(&hSimConnect, "Request Data", NULL, 0, 0, 0)))
     {
         FCU_DEBUG("Connected to Flight Simulator!");
 
-        //// Set up the data definition, but do not yet do anything with it
-        //hr = SimConnect_AddToDataDefinition(hSimConnect, DEFINITION_1, "Title", NULL, SIMCONNECT_DATATYPE_STRING256);
-        //hr = SimConnect_AddToDataDefinition(hSimConnect, DEFINITION_1, "Kohlsman setting hg", "inHg");
-        //hr = SimConnect_AddToDataDefinition(hSimConnect, DEFINITION_1, "Plane Altitude", "feet");
-        //hr = SimConnect_AddToDataDefinition(hSimConnect, DEFINITION_1, "Plane Latitude", "degrees");
-        //hr = SimConnect_AddToDataDefinition(hSimConnect, DEFINITION_1, "Plane Longitude", "degrees");
-
         // Set up the data definition, but do not yet do anything with it 需要请求的数据
+        // ------------------------------------------------ DEFINITION_FCU_PANEL-------------------------------------------------------
         hr = SimConnect_AddToDataDefinition(hSimConnect, DEFINITION_FCU_PANEL, "L:A32NX_AUTOPILOT_ACTIVE", "Bool");//FCU AP Master
         hr = SimConnect_AddToDataDefinition(hSimConnect, DEFINITION_FCU_PANEL, "L:A32NX_AUTOPILOT_1_ACTIVE", "Bool");//FCU AP1
         hr = SimConnect_AddToDataDefinition(hSimConnect, DEFINITION_FCU_PANEL, "L:A32NX_AUTOPILOT_2_ACTIVE", "Bool");//FCU AP2
@@ -265,7 +260,6 @@ void init_SimConnect() {
         hr = SimConnect_AddToDataDefinition(hSimConnect, DEFINITION_FCU_PANEL, "L:A32NX_FCU_VS_MANAGED", "Bool");//指示托管 VS/FPA 模式是否处于活动状态
         hr = SimConnect_AddToDataDefinition(hSimConnect, DEFINITION_FCU_PANEL, "L:A32NX_TRK_FPA_MODE_ACTIVE", "Bool");//如果 TRK/FPA 模式处于活动状态，则为 true
         hr = SimConnect_AddToDataDefinition(hSimConnect, DEFINITION_FCU_PANEL, "AUTOPILOT MANAGED SPEED IN MACH", "Bool");//SPD/MACH 0=knots 1=mach
-
         hr = SimConnect_AddToDataDefinition(hSimConnect, DEFINITION_FCU_PANEL, "L:A32NX_AUTOPILOT_SPEED_SELECTED", NULL);
         hr = SimConnect_AddToDataDefinition(hSimConnect, DEFINITION_FCU_PANEL, "L:A32NX_AUTOPILOT_FPA_SELECTED", "degrees");//指示 FCU 上选定的 FPA，即时更新
         hr = SimConnect_AddToDataDefinition(hSimConnect, DEFINITION_FCU_PANEL, "L:A32NX_AUTOPILOT_HEADING_SELECTED", "degrees", SIMCONNECT_DATATYPE_INT32);//指示 FCU 上的选定heading，在托管标题模式下，值为 - 1
@@ -273,13 +267,18 @@ void init_SimConnect() {
         hr = SimConnect_AddToDataDefinition(hSimConnect, DEFINITION_FCU_PANEL, "L:XMLVAR_AUTOPILOT_ALTITUDE_INCREMENT", "feet", SIMCONNECT_DATATYPE_INT32);// 高度增量 100|1000
         hr = SimConnect_AddToDataDefinition(hSimConnect, DEFINITION_FCU_PANEL, "L:A32NX_AUTOPILOT_VS_SELECTED", "feet per minute", SIMCONNECT_DATATYPE_INT32);// V/S显示
 
+        hr = SimConnect_RequestDataOnSimObject(hSimConnect, REQUEST_FCU_PANEL, DEFINITION_FCU_PANEL, SIMCONNECT_OBJECT_ID_USER, SIMCONNECT_PERIOD_SIM_FRAME);
+        // ------------------------------------------------ DEFINITION_FCU_PANEL-------------------------------------------------------
+        hr = SimConnect_AddToDataDefinition(hSimConnect, DEFINITION_AIRCRAFT_VAR, "L:A32NX_METRIC_ALT_TOGGLE", "Bool");//是否开启PFD米制单位显示
+
+        hr = SimConnect_RequestDataOnSimObject(hSimConnect, REQUEST_AIRCRAFT_VAR, DEFINITION_AIRCRAFT_VAR, SIMCONNECT_OBJECT_ID_USER, SIMCONNECT_PERIOD_SIM_FRAME);
 
         // Request an event when the simulation starts
         hr = SimConnect_SubscribeToSystemEvent(hSimConnect, EVENT_SIM_START, "SimStart");
-        hr = SimConnect_RequestDataOnSimObject(hSimConnect, REQUEST_FCU_PANEL, DEFINITION_FCU_PANEL, SIMCONNECT_OBJECT_ID_USER, SIMCONNECT_PERIOD_SECOND);
 
 
         // Registe Client Event 注册客户端事件
+        // ------------------------------------------------ Client Event Map -------------------------------------------------------
         hr = SimConnect_MapClientEventToSimEvent(hSimConnect, EVENT_A32X_FCU_AP1_PUSH, "A32NX.FCU_AP_1_PUSH");
         hr = SimConnect_MapClientEventToSimEvent(hSimConnect, EVENT_A32X_FCU_AP2_PUSH, "A32NX.FCU_AP_2_PUSH");
         hr = SimConnect_MapClientEventToSimEvent(hSimConnect, EVENT_A32X_FCU_ATHR_PUSH, "A32NX.FCU_ATHR_PUSH");
@@ -288,9 +287,7 @@ void init_SimConnect() {
         hr = SimConnect_MapClientEventToSimEvent(hSimConnect, EVENT_A32X_FCU_APPR_PUSH, "A32NX.FCU_APPR_PUSH");
         hr = SimConnect_MapClientEventToSimEvent(hSimConnect, EVENT_A32X_FCU_SPD_MACH_PUSH, "A32NX.FCU_SPD_MACH_TOGGLE_PUSH");
         hr = SimConnect_MapClientEventToSimEvent(hSimConnect, EVENT_A32X_FCU_TRK_FPA_PUSH, "A32NX.FCU_TRK_FPA_TOGGLE_PUSH");
-
-        //FIXME: 修复metric
-        //hr = SimConnect_MapClientEventToSimEvent(hSimConnect, EVENT_A32X_FCU_METRIC_ALT_PUSH, "");
+        //hr = SimConnect_MapClientEventToSimEvent(hSimConnect, EVENT_A32X_FCU_METRIC_ALT_PUSH, ""); //该事件在switch中直接处理变量
 
         hr = SimConnect_MapClientEventToSimEvent(hSimConnect, EVENT_A32X_FCU_SPD_PUSH, "A32NX.FCU_SPD_PUSH");
         hr = SimConnect_MapClientEventToSimEvent(hSimConnect, EVENT_A32X_FCU_SPD_PULL, "A32NX.FCU_SPD_PULL");
@@ -312,26 +309,19 @@ void init_SimConnect() {
         hr = SimConnect_MapClientEventToSimEvent(hSimConnect, EVENT_A32X_FCU_VS_INC, "A32NX.FCU_VS_INC");
         hr = SimConnect_MapClientEventToSimEvent(hSimConnect, EVENT_A32X_FCU_VS_DEC, "A32NX.FCU_VS_DEC");
 
+        // ------------------------------------------------ Notification Priority -------------------------------------------------------
+        //hr = SimConnect_SetNotificationGroupPriority(hSimConnect, GROUP_FCU_PANEL, SIMCONNECT_GROUP_PRIORITY_HIGHEST);
 
-        hr = SimConnect_SetNotificationGroupPriority(hSimConnect, GROUP_FCU_PANEL, SIMCONNECT_GROUP_PRIORITY_HIGHEST);
-
-        //SimConnect_TransmitClientEvent(hSimConnect, 0, EVENT_A32X_FCU_AP1_PUSH, 0, SIMCONNECT_GROUP_PRIORITY_HIGHEST, SIMCONNECT_EVENT_FLAG_GROUPID_IS_PRIORITY);
-        hr = SimConnect_RequestDataOnSimObject(hSimConnect, REQUEST_FCU_PANEL, DEFINITION_FCU_PANEL, SIMCONNECT_OBJECT_ID_USER, SIMCONNECT_PERIOD_SIM_FRAME);
+        //hr = SimConnect_RequestDataOnSimObject(hSimConnect, REQUEST_FCU_PANEL, DEFINITION_FCU_PANEL, SIMCONNECT_OBJECT_ID_USER, SIMCONNECT_PERIOD_SIM_FRAME);
 
         FCU_INFO("Simconnect 初始化完毕");
-
-        //while (0 == quit)
-        //{
-        //    SimConnect_CallDispatch(hSimConnect, MyDispatchProcRD, NULL);
-        //    Sleep(1);
-        //}
-
-        //hr = SimConnect_Close(hSimConnect);
     }
     else
     {
         FCU_CRITICAL("请先启动游戏!");
+        return 1;
     }
+    return 0;
 }
 
 void deinit_SimConnect() {
@@ -342,13 +332,23 @@ void deinit_SimConnect() {
     }
     else
     {
-        FCU_WARN("SimConnect 未初始化");
+        FCU_DEBUG("SimConnect 未初始化");
     }
 }
 
 void aircraft_event_send(EVENT_ID event){
     FCU_DEBUG("Transmit event {}",(UINT8)event);
-    SimConnect_TransmitClientEvent(hSimConnect, 0, event, 0, SIMCONNECT_GROUP_PRIORITY_HIGHEST, SIMCONNECT_EVENT_FLAG_GROUPID_IS_PRIORITY);
+    switch (event)
+    {
+    case EVENT_A32X_FCU_METRIC_ALT_PUSH:
+        aircraft_var.metric_mode_active = 1 - aircraft_var.metric_mode_active;
+        hr = SimConnect_SetDataOnSimObject(hSimConnect, DEFINITION_AIRCRAFT_VAR, SIMCONNECT_OBJECT_ID_USER, 0, 0, sizeof(aircraft_var), &aircraft_var);
+        break;
+
+    default:
+        SimConnect_TransmitClientEvent(hSimConnect, 0, event, 0, SIMCONNECT_GROUP_PRIORITY_HIGHEST, SIMCONNECT_EVENT_FLAG_GROUPID_IS_PRIORITY);
+        break;
+    }
 }
 
 void simconnect_call() {
