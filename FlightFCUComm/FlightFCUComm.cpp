@@ -173,7 +173,7 @@ void hid_data_send(fcu_panel_hid_t* panel) {
     else {
         // 数据成功发送
         //printf("SEND DATA:");
-        //for (uint8_t i = 0; i < 12; i++) {
+        //for (uint8_t i = 0; i < 13; i++) {
         //    printf("%02X", value[i]);
         //}
         //printf("\n");

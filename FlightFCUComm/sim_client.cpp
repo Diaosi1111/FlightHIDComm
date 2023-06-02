@@ -66,15 +66,10 @@ void CALLBACK MyDispatchProcRD(SIMCONNECT_RECV* pData, DWORD cbData, void* pCont
                 panel_state.trk_fpa_mode = pS->trk_fpa_mode != 0;
                 panel_state.alt_increment = pS->alt_inc != 0;
                 panel_state.vs_dashes = pS->vs_dashes != 0;
-                //(UIN16)*data=(pS->ap_master != 0) << 15 | (pS->ap1_master != 0) << 14 | (pS->ap2_master != 0) << 13 | 
-                //    () << 12 | () << 11 | () << 10 | () << 9 |
-                //    () << 8 | () << 7 | () << 6 | () << 5 |
-                //    () << 4 | () << 3 | () << 2 | () << 1 | ();
 
-                panel_state.fpa_selected = (INT8)(pS->fpa_selected * 10);
+                panel_state.fpa_selected = (INT8)(round(pS->fpa_selected * 10));
                 panel_state.hdg_selected = pS->heading_selected;
-                
-                //if (panel_state.spd_mach_mode)
+
                 panel_state.spd_selected = (float)pS->ap_airspeed_hold_var;
                 panel_state.alt_selected = pS->alt_selected;
                 panel_state.vs_selected = pS->vs_selected/100;
