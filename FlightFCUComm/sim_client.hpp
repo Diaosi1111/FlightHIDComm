@@ -122,6 +122,8 @@ typedef enum {
     EVENT_A32X_FCU_VS_PULL,
     EVENT_A32X_FCU_VS_INC,
     EVENT_A32X_FCU_VS_DEC,
+
+    EVENT_A32X_FCU_ALT_INC_TOGGLE,
 }EVENT_ID;
 /*数据格式定义*/
 typedef enum  {

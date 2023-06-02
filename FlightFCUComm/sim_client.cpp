@@ -68,7 +68,7 @@ void CALLBACK MyDispatchProcRD(SIMCONNECT_RECV* pData, DWORD cbData, void* pCont
                 panel_state.vs_dashes = pS->vs_dashes != 0;
 
                 panel_state.fpa_selected = (INT8)(round(pS->fpa_selected * 10));
-                panel_state.hdg_selected = pS->heading_selected;
+                panel_state.hdg_selected = (INT16)pS->heading_selected;
 
                 panel_state.spd_selected = (float)pS->ap_airspeed_hold_var;
                 panel_state.alt_selected = pS->alt_selected;
@@ -303,6 +303,8 @@ int init_SimConnect() {
         hr = SimConnect_MapClientEventToSimEvent(hSimConnect, EVENT_A32X_FCU_VS_PULL, "A32NX.FCU_VS_PULL");
         hr = SimConnect_MapClientEventToSimEvent(hSimConnect, EVENT_A32X_FCU_VS_INC, "A32NX.FCU_VS_INC");
         hr = SimConnect_MapClientEventToSimEvent(hSimConnect, EVENT_A32X_FCU_VS_DEC, "A32NX.FCU_VS_DEC");
+
+        hr = SimConnect_MapClientEventToSimEvent(hSimConnect, EVENT_A32X_FCU_ALT_INC_TOGGLE, "A32NX.FCU_ALT_INCREMENT_TOGGLE");
 
         // ------------------------------------------------ Notification Priority -------------------------------------------------------
         //hr = SimConnect_SetNotificationGroupPriority(hSimConnect, GROUP_FCU_PANEL, SIMCONNECT_GROUP_PRIORITY_HIGHEST);

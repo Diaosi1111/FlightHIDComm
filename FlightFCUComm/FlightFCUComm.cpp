@@ -103,7 +103,7 @@ int main()
         while (true)
         {
 
-            int bytesRead = hid_read(hid_dev, (uint8_t*)&receive_buf, sizeof(receive_buf));
+            int bytesRead = hid_read_timeout(hid_dev, (uint8_t*)&receive_buf, sizeof(receive_buf),0xf);
             if (bytesRead < 0) {
                 // 读取数据失败
                 // 处理错误
@@ -112,14 +112,14 @@ int main()
                 hid_dev = nullptr;
                 break;
             }
-            else {
+            else if (bytesRead != 0) {// =0时没接收到数据
                 // 处理读取到的数据
                 //FCU_DEBUG("RECEIVE:{:X}", receive_buf);
                 if (receive_buf != 0)
                 {
                     FCU_TRACE("接收到数据:{:x}", receive_buf);
                     uint32_t mask = 1;
-                    for (size_t i = 0; i < 25; i++)
+                    for (size_t i = 0; i < 26; i++)
                     {
                         if (receive_buf & mask)
                         {
